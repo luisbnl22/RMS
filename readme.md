@@ -23,3 +23,6 @@ This project uses streamlit for the front-end and sqlite for information storage
 2. streamlit run Login.py
 
 Enjoy :) Feel free to suggest new features.
+
+![Menu Screenshot](./images/demo.png)
+
