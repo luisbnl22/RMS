@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd 
 from database import db_setup
-
+from classes_script import MenuItem
 
 
 # Initialize session state to track if the popup should appear
@@ -38,7 +38,7 @@ if st.button("Add Option"):
 
 if not st.session_state["show_popup"]:
 
-    raw_data = db_setup.fetch_query("SELECT * FROM menu where type = 'comida'")
+    raw_data = db_setup.fetch_query("SELECT * FROM menu where type = 'Food'")
 
     menu = []
     for iter in raw_data:
@@ -57,7 +57,7 @@ if not st.session_state["show_popup"]:
     # Add a separator
     st.markdown("---")
 
-    raw_data_bebidas = db_setup.fetch_query("SELECT * FROM menu where type = 'bebida'")
+    raw_data_bebidas = db_setup.fetch_query("SELECT * FROM menu where type = 'Beverage'")
 
     menu_bebidas = []
     for iter in raw_data_bebidas:
@@ -92,12 +92,22 @@ if not st.session_state["show_popup"]:
 else:
     # Popup UI
     st.write("### Add a New Menu Option")
-    new_option = st.text_input("Enter the name of the new option:")
+    
+    INPUTname = st.text_input("Enter the name of the new option:")
+    INPUTtype = st.selectbox("Type",['Food','Beverage'])
+    INPUTprice = st.number_input("Insert price of product")
+    INPUTavailability = st.number_input("Availability (0-NO,1-YES)",min_value=0,max_value=1,step=1)
+
+
     add_button = st.button("Confirm Add")
     cancel_button = st.button("Cancel")
 
-    if add_button and new_option:
-        st.success(f"Option '{new_option}' has been added!")
+    if add_button and INPUTname:
+        
+        item = MenuItem(INPUTname,INPUTtype,INPUTprice,INPUTavailability)
+        db_setup.insert_menu_product(item)
+
+        #st.success(f"Option '{new_option}' has been added!")
         st.session_state["show_popup"] = False  # Close popup after adding
 
     elif cancel_button:

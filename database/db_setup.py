@@ -26,7 +26,7 @@ def create_database():
 
     # Create empty tables
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS menu (
+    CREATE TABLE IF NOT EXISTS menu(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         type TEXT NOT NULL,
@@ -73,9 +73,19 @@ def fetch_query(query, params=()):
     connection.close()
     return rows
 
-# Initialize the database
-if __name__ == "__main__":
-    create_database()
+def insert_menu_product(product_obj):
+    connection = sqlite3.connect("data/restaurant.db")
+    cursor = connection.cursor()
+
+    query = f"insert into menu(name,type,price,availability) values ('{product_obj.name}','{product_obj.item_type}','{product_obj.price}','{product_obj.availability}')"
+
+    cursor.execute(query)
+    connection.commit()
+    connection.close()
+
+# # Initialize the database
+# if __name__ == "__main__":
+#     create_database()
  
 
 # create_database()
