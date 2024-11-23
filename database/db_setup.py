@@ -1,5 +1,7 @@
 import sqlite3
 import os
+from database import db_setup
+
 
 def create_database():
     # Get the parent directory of the current script
@@ -27,6 +29,7 @@ def create_database():
     CREATE TABLE IF NOT EXISTS menu (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
+        type TEXT NOT NULL,
         price REAL NOT NULL,
         availability INTEGER DEFAULT 1
     );
@@ -74,3 +77,15 @@ def fetch_query(query, params=()):
 if __name__ == "__main__":
     create_database()
  
+
+# create_database()
+
+#execute_query("update menu set availability = 0 where name like '%frang%'")
+
+
+a = fetch_query("""
+   SELECT * FROM menu;
+    """)
+
+print(a)
+
