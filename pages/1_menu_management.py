@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd 
 from database import db_setup
 from classes_script import MenuItem
+import logging
+import pdb
 
 
 # Initialize session state to track if the popup should appear
@@ -79,13 +81,13 @@ if not st.session_state["show_popup"]:
         cancel = st.button("Cancel")
 
         if confirm:
-            activated = [item for item, state in menu_state.items() if state]
-            deactivated = [item for item, state in menu_state.items() if not state]
+            #activated = [item for item, state in menu_state.items() if state]
+            deactivated_names = [item[0] for item in menu_state if item[1] is False]
+            
+            deactivated_tuple = tuple(deactivated_names)
 
-            for i in deactivated:
-                print("O que e o i:")
-                print(i)
-                db_setup.execute_query("update menu set availability = 0 where name = '?'",(i,))
+            if len(deactivated_names) > 0:
+                db_setup.execute_query(f"update menu set availability = 0 where name in {deactivated_tuple}")
 
         elif cancel:
             st.info("Changes have been discarded.")

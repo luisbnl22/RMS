@@ -90,7 +90,7 @@ def insert_menu_product(product_obj):
 
 # create_database()
 
-#execute_query("update menu set availability = 0 where name like '%frang%'")
+execute_query("update menu set availability = 0 where name = 'PIZZA MOSTEIRO'")
 
 
 a = fetch_query("""
