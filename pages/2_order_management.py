@@ -45,20 +45,18 @@ if table_number and person_name:
             if quantity > 0:
                 order = db_setup.ADD_order_df(order,drink,quantity)
 
-    st.write(order)
+    #st.write(order)
 
     # Display the order summary before submission
-    if order:
+    if order.empty is False:
         st.subheader("Your Order Summary")
         # Create a DataFrame from the order list
-        df_order = pd.DataFrame(order)
-        st.dataframe(df_order)
+        #df_order = pd.DataFrame(order)
+        #st.dataframe(order)
 
         # Submit button for finalizing the order
         if st.button("Submit Order"):
-            st.write(f"**Order for Table {table_number}**")
-            st.write(f"**Customer: {person_name}**")
-            st.dataframe(df_order)
+            db_setup.ADD_order_df_to_db(order,table_number)
             st.success("Order submitted successfully!")
     else:
         st.write("No items selected yet.")

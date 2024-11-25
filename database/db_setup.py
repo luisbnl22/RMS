@@ -1,8 +1,21 @@
 import sqlite3
 import os
-from database import db_setup
+#from database import db_setup
 
 import pandas as pd
+import datetime as dt
+
+def utils_time_diff(request_date):
+    now = dt.datetime.now()
+
+    date_object = dt.datetime.strptime(request_date, "%Y-%m-%d %H:%M:%S.%f")
+
+    diff_sec = (now-date_object).seconds
+    diff_minutes = int(diff_sec/60)
+
+    return diff_minutes
+
+
 
 def create_database():
     # Get the parent directory of the current script
@@ -66,6 +79,7 @@ def create_database():
         table_id INTEGER NOT NULL,
         item TEXT NOT NULL,
         quantity INT NOT NULL,
+        order_time DATETIME NOT NULL,
         status TEXT DEFAULT 'Pending'
     );
     """)
@@ -126,17 +140,64 @@ def GET_available_food():
 def GET_available_drink():
     return fetch_query_single_output(""" SELECT name FROM menu where type = 'Beverage' and availability = 1""")  
 
+def GET_orders_df():
+    df_init = fetch_query("SELECT * FROM orders")  
+
+    df = pd.DataFrame(df_init)
+
+    df.columns = ['id','Table','Item','Quantity','order_time','Status']
+
+    df['Minutes since request'] = df['order_time'].apply(utils_time_diff)
+
+    df = df.drop("id",axis=1)
+
+    df = df.drop("order_time",axis=1)
+
+    #df.columns = ['id','Table','Item','Quantity','Order time','Status']
+
+    return df
+
+
+
+
+
 def GENERATE_order_df():
     return pd.DataFrame(columns=['item','quantity'])
 
 def ADD_order_df(original_df,new_item,new_quantity):
     
-    new_df = pd.DataFrame({'items':[new_item],'quantity':[new_quantity]})
+    new_df = pd.DataFrame({'item':[new_item],'quantity':[new_quantity]})
 
     original_df = pd.concat([original_df,new_df])
 
     return original_df
 
+def ADD_order_df_to_db(df,table_number):
+    
+    connection = sqlite3.connect("data/restaurant.db")
+    #cursor = connection.cursor()
+    df['table_id'] = table_number
+    df['order_time'] = dt.datetime.now()
+
+
+    df.to_sql("orders", connection, if_exists="append", index=False)
+    #connection.commit()
+    #connection.close()
+
+    table_number = table_number.split("-")[0]
+
+    execute_query(f"update tables set is_occupied = 1 where id = {table_number}")
+
+
+
 if __name__ == "__main__":
     create_database()
  
+
+#print(fetch_query("select * from orders"))
+
+
+
+# idd = 5
+# execute_query(f"update tables set is_occupied = 1 where id = {idd}")
+
