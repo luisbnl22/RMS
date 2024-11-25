@@ -4,6 +4,7 @@ from database import db_setup
 from classes_script import MenuItem
 import logging
 import pdb
+import time
 
 
 # Initialize session state to track if the popup should appear
@@ -19,23 +20,7 @@ def toggle_popup():
 if st.button("Add Option"):
     toggle_popup()  # Show the popup
 
-# Popup-like behavior
-# if st.session_state["show_popup"]:
-#     st.write("### Add a New Menu Option")
-#     # Text input for the new option
-#     new_option = st.text_input("Enter the name of the new option:")
-#     add_button = st.button("Confirm Add")  # Button to confirm the addition
-#     cancel_button = st.button("Cancel")   # Button to cancel
 
-#     if add_button and new_option:
-#         st.success(f"Option '{new_option}' has been added!")
-#         # Reset popup state after adding
-#         st.session_state["show_popup"] = False
-
-#     elif cancel_button:
-#         st.info("Addition canceled.")
-#         # Reset popup state after canceling
-#         st.session_state["show_popup"] = False
 
 
 if not st.session_state["show_popup"]:
@@ -65,32 +50,66 @@ if not st.session_state["show_popup"]:
     for iter in raw_data_bebidas:
         menu_bebidas.append([iter[1],iter[4]])
 
+
+    # Initialize session state for menu_state
+    if "menu_state" not in st.session_state:
+        st.session_state.menu_state = {}
+
+
     # Display options for "Drinks"
     st.title("Drinks")
     for drink in menu_bebidas:
-        # Add a checkbox for each drink item
-        menu_state[drink[0]] = st.checkbox(drink[0], value=drink[1])  # Default: selected
+         st.session_state.menu_state[drink[0]] = st.checkbox(
+        drink[0], value=st.session_state.menu_state.get(drink[0], drink[1])
+        )
 
     # Add a save button
+    # Add a save button
     if st.button("Save Changes"):
-        # Confirmation warning
-        st.warning("Are you sure you want to save the changes?")
+       
 
-        # Confirmation and cancel buttons
-        confirm = st.button("Confirm")
-        cancel = st.button("Cancel")
+        #PRODUCTS TO DEACTIVATE
+        # deactivated_names = [
+        #     item for item, state in st.session_state.menu_state.items() if not state
+        # ]
 
-        if confirm:
-            #activated = [item for item, state in menu_state.items() if state]
-            deactivated_names = [item[0] for item in menu_state if item[1] is False]
+        # if deactivated_names:
+        #     #st.write(f"Deactivating: {deactivated_names}")
+
+        #     deactivated_names_tuple = tuple(deactivated_names)
+
+        #     if len(deactivated_names)==1:                
+        #         deactivated_names_tuple = str(deactivated_names_tuple).replace(',','')
+        #     else:
+        #         deactivated_names_tuple = str(deactivated_names_tuple)
+
+        #     #st.write(f"UPDATE menu SET availability = 0 WHERE name IN {deactivated_names_tuple}")
             
-            deactivated_tuple = tuple(deactivated_names)
+        #     db_setup.execute_query(f"UPDATE menu SET availability = 0 WHERE name IN {deactivated_names_tuple}")
 
-            if len(deactivated_names) > 0:
-                db_setup.execute_query(f"update menu set availability = 0 where name in {deactivated_tuple}")
+        #PRODUCTS TO ACTIVATE
 
-        elif cancel:
-            st.info("Changes have been discarded.")
+        activated_names = [
+            item for item, state in st.session_state.menu_state.items() if state is True]
+
+        st.write(activated_names)
+
+        if activated_names:
+
+            activated_names_tuple = tuple(activated_names)
+
+            if len(activated_names)==1:                
+                activated_names_tuple = str(activated_names_tuple).replace(',','')
+            else:
+                activated_names_tuple = str(activated_names_tuple)
+
+            st.write(f"UPDATE menu SET availability = 1 WHERE name IN {activated_names_tuple}")
+            
+            db_setup.execute_query(f"UPDATE menu SET availability = 1 WHERE name IN {activated_names_tuple}")
+
+        st.success("Changes saved successfully.")
+        st.session_state.show_confirmation = False
+
 else:
     # Popup UI
     st.write("### Add a New Menu Option")

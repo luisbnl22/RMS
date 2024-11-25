@@ -1,0 +1,17 @@
+{
+    "version": "0.1.0",
+    "configurations": [
+        {
+            "name": "debug streamlit",
+            "type": "python",
+            "request": "launch",
+            "program": "C:/Users/luisb/AppData/Roaming/Python/Python311/site-packages/streamlit",  // /home/xx/tmp/venv/bin/streamlit",
+            "args": [
+                "run",
+                "Login.py"
+            ]
+        }
+    ]
+    }
+
+    }
