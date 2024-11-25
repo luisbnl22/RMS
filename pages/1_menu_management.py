@@ -25,36 +25,40 @@ if st.button("Add Option"):
 
 if not st.session_state["show_popup"]:
 
-    raw_data = db_setup.fetch_query("SELECT * FROM menu where type = 'Food'")
+
+    raw_data = db_setup.fetch_query("SELECT name, availability FROM menu where type = 'Food'")
 
     menu = []
     for iter in raw_data:
-        menu.append([iter[1],iter[4]])
+        menu.append([iter[0],iter[1]])
         #NOME E DISPONIBILIDADE
-
-    # Create a dictionary to store the state of each menu item
-    menu_state = {}
-
-    # Display options for "Food"
-    st.title("Food")
-    for food in menu:
-        # Add a checkbox for each food item
-        menu_state[food[0]] = st.checkbox(food[0], value=food[1])  # Default: selected
-
-    # Add a separator
-    st.markdown("---")
-
-    raw_data_bebidas = db_setup.fetch_query("SELECT * FROM menu where type = 'Beverage'")
-
-    menu_bebidas = []
-    for iter in raw_data_bebidas:
-        menu_bebidas.append([iter[1],iter[4]])
-
 
     # Initialize session state for menu_state
     if "menu_state" not in st.session_state:
         st.session_state.menu_state = {}
 
+    # # Create a dictionary to store the state of each menu item
+    # menu_state = {}
+
+    # Display options for "Food"
+    st.title("Food")
+    for food in menu:
+        # Add a checkbox for each food item
+        st.session_state.menu_state[food[0]] = st.checkbox(food[0], value=st.session_state.get(food[0],food[1]))  # Default: selected
+
+    # Add a separator
+    st.markdown("---")
+
+    raw_data_bebidas = db_setup.fetch_query("SELECT name, availability FROM menu where type = 'Beverage'")
+
+    menu_bebidas = []
+    for iter in raw_data_bebidas:
+        menu_bebidas.append([iter[0],iter[1]])
+
+
+
+
+    
 
     # Display options for "Drinks"
     st.title("Drinks")
@@ -62,6 +66,11 @@ if not st.session_state["show_popup"]:
          st.session_state.menu_state[drink[0]] = st.checkbox(
         drink[0], value=st.session_state.menu_state.get(drink[0], drink[1])
         )
+         
+    # for food in menu:
+    #     st.session_state.menu_state[food[0]] = st.checkbox(
+    #     food[0], value=st.session_state.menu_state.get(food[0], food[1])
+    # )
 
     # Add a save button
     # Add a save button
@@ -69,30 +78,30 @@ if not st.session_state["show_popup"]:
        
 
         #PRODUCTS TO DEACTIVATE
-        # deactivated_names = [
-        #     item for item, state in st.session_state.menu_state.items() if not state
-        # ]
+        deactivated_names = [
+            item for item, state in st.session_state.menu_state.items() if not state
+        ]
 
-        # if deactivated_names:
-        #     #st.write(f"Deactivating: {deactivated_names}")
+        if deactivated_names:
+            #st.write(f"Deactivating: {deactivated_names}")
 
-        #     deactivated_names_tuple = tuple(deactivated_names)
+            deactivated_names_tuple = tuple(deactivated_names)
 
-        #     if len(deactivated_names)==1:                
-        #         deactivated_names_tuple = str(deactivated_names_tuple).replace(',','')
-        #     else:
-        #         deactivated_names_tuple = str(deactivated_names_tuple)
+            if len(deactivated_names)==1:                
+                deactivated_names_tuple = str(deactivated_names_tuple).replace(',','')
+            else:
+                deactivated_names_tuple = str(deactivated_names_tuple)
 
-        #     #st.write(f"UPDATE menu SET availability = 0 WHERE name IN {deactivated_names_tuple}")
+            #st.write(f"UPDATE menu SET availability = 0 WHERE name IN {deactivated_names_tuple}")
             
-        #     db_setup.execute_query(f"UPDATE menu SET availability = 0 WHERE name IN {deactivated_names_tuple}")
+            db_setup.execute_query(f"UPDATE menu SET availability = 0 WHERE name IN {deactivated_names_tuple}")
 
         #PRODUCTS TO ACTIVATE
 
         activated_names = [
             item for item, state in st.session_state.menu_state.items() if state is True]
 
-        st.write(activated_names)
+        #st.write(activated_names)
 
         if activated_names:
 
@@ -103,7 +112,7 @@ if not st.session_state["show_popup"]:
             else:
                 activated_names_tuple = str(activated_names_tuple)
 
-            st.write(f"UPDATE menu SET availability = 1 WHERE name IN {activated_names_tuple}")
+            #st.write(f"UPDATE menu SET availability = 1 WHERE name IN {activated_names_tuple}")
             
             db_setup.execute_query(f"UPDATE menu SET availability = 1 WHERE name IN {activated_names_tuple}")
 
