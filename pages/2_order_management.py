@@ -1,48 +1,51 @@
 import streamlit as st
 import pandas as pd
-
-# Define the menu items for "Food" and "Drinks"
-menu = {
-    "Food": ["Pizza", "Burger", "Pasta", "Salad", "Soup"],
-    "Drinks": ["Water", "Soda", "Juice", "Beer", "Wine"]
-}
+from database import db_setup
 
 # Get customer details before selecting menu items
 st.title("Order Management")
 
 # Customer Details Inputs
-table_number = st.text_input("Table Number")
+table_number = st.selectbox("Table Number",db_setup.GET_available_tables())
 person_name = st.text_input("Person's Name")
 
 # Only proceed if both fields are filled
 if table_number and person_name:
     # Create a list to store selected items and their quantities
-    order = []
+    order = db_setup.GENERATE_order_df()
 
     # Display options for "Food"
     st.subheader("Select Food Items")
-    for food in menu["Food"]:
+    menu = db_setup.GET_available_food()
+
+    for food in menu:
         # Add checkbox for each food item
         selected = st.checkbox(food, key=food)
         if selected:
             # Allow user to input quantity
             quantity = st.number_input(f"Quantity for {food}", min_value=0, step=1, key=f"quantity_{food}")
             if quantity > 0:
-                order.append({"Item": food, "Category": "Food", "Quantity": quantity})
+                
+                order = db_setup.ADD_order_df(order,food,quantity)
+                
 
     # Add a separator
     st.markdown("---")
 
+    menu_drinks = db_setup.GET_available_drink()
+
     # Display options for "Drinks"
     st.subheader("Select Drink Items")
-    for drink in menu["Drinks"]:
+    for drink in menu_drinks:
         # Add checkbox for each drink item
         selected = st.checkbox(drink, key=drink)
         if selected:
             # Allow user to input quantity
             quantity = st.number_input(f"Quantity for {drink}", min_value=0, step=1, key=f"quantity_{drink}")
             if quantity > 0:
-                order.append({"Item": drink, "Category": "Drinks", "Quantity": quantity})
+                order = db_setup.ADD_order_df(order,drink,quantity)
+
+    st.write(order)
 
     # Display the order summary before submission
     if order:

@@ -2,6 +2,7 @@ import sqlite3
 import os
 from database import db_setup
 
+import pandas as pd
 
 def create_database():
     # Get the parent directory of the current script
@@ -35,6 +36,15 @@ def create_database():
     );
     """)
 
+    cwd = os.getcwd()
+    cwd = cwd + '\\database\\initial_files\\data.xlsx'
+    cwd = cwd.replace("\\","/")
+
+    menu = pd.read_excel(cwd,sheet_name = 'menu')
+
+    menu.to_sql("menu", connection, if_exists="append", index=False)
+
+    #TABLES TABLE
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS tables (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,11 +53,19 @@ def create_database():
     );
     """)
 
+
+    data = pd.read_excel(cwd,sheet_name = 'tables')
+
+    data.to_sql("tables", connection, if_exists="append", index=False)
+
+
+    #ORDERS TABLE
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS orders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         table_id INTEGER NOT NULL,
-        items TEXT NOT NULL,
+        item TEXT NOT NULL,
+        quantity INT NOT NULL,
         status TEXT DEFAULT 'Pending'
     );
     """)
@@ -70,6 +88,18 @@ def fetch_query(query, params=()):
     cursor = connection.cursor()
     cursor.execute(query, params)
     rows = cursor.fetchall()
+
+    #rows = [row[0] for row in cursor.fetchall()]
+    connection.close()
+    return rows
+
+def fetch_query_single_output(query, params=()):
+    connection = sqlite3.connect("data/restaurant.db")
+    cursor = connection.cursor()
+    cursor.execute(query, params)
+    #rows = cursor.fetchall()
+
+    rows = [row[0] for row in cursor.fetchall()]
     connection.close()
     return rows
 
@@ -83,19 +113,30 @@ def insert_menu_product(product_obj):
     connection.commit()
     connection.close()
 
-# # Initialize the database
-# if __name__ == "__main__":
-#     create_database()
+def GET_available_tables():
+    return fetch_query_single_output("""SELECT id || ' - ' || capacity || ' capacity'
+                        FROM tables
+                        WHERE is_occupied = 0;
+                       """)
+
+    
+def GET_available_food():
+    return fetch_query_single_output(""" SELECT name FROM menu where type = 'Food' and availability = 1""")  
+
+def GET_available_drink():
+    return fetch_query_single_output(""" SELECT name FROM menu where type = 'Beverage' and availability = 1""")  
+
+def GENERATE_order_df():
+    return pd.DataFrame(columns=['item','quantity'])
+
+def ADD_order_df(original_df,new_item,new_quantity):
+    
+    new_df = pd.DataFrame({'items':[new_item],'quantity':[new_quantity]})
+
+    original_df = pd.concat([original_df,new_df])
+
+    return original_df
+
+if __name__ == "__main__":
+    create_database()
  
-
-# create_database()
-
-execute_query("update menu set availability = 0 where name = 'PIZZA MOSTEIRO'")
-
-
-a = fetch_query("""
-   SELECT * FROM menu;
-    """)
-
-print(a)
-

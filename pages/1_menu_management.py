@@ -28,6 +28,8 @@ if not st.session_state["show_popup"]:
 
     raw_data = db_setup.fetch_query("SELECT name, availability FROM menu where type = 'Food'")
 
+
+    #st.write(raw_data)
     menu = []
     for iter in raw_data:
         menu.append([iter[0],iter[1]])
