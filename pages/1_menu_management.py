@@ -17,11 +17,13 @@ def toggle_popup():
 
 
 # "Add Option" button
-if st.button("Add Option"):
+if st.button("Add new Menu Option"):
     toggle_popup()  # Show the popup
 
+st.markdown("---")
 
 
+st.title("Existing Options")
 
 if not st.session_state["show_popup"]:
 
