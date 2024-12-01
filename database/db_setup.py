@@ -151,7 +151,8 @@ def GET_orders_df():
 
     df = df.drop("id",axis=1)
 
-    df = df.drop("order_time",axis=1)
+    df['dense_rank'] = df['order_time'].rank(method='dense', ascending=True)
+    #df = df.drop("order_time",axis=1)
 
     #df.columns = ['id','Table','Item','Quantity','Order time','Status']
 
@@ -193,7 +194,6 @@ def ADD_order_df_to_db(df,table_number):
 if __name__ == "__main__":
     create_database()
  
-
 #print(fetch_query("select * from orders"))
 
 
