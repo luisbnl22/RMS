@@ -80,7 +80,8 @@ def create_database():
         item TEXT NOT NULL,
         quantity INT NOT NULL,
         order_time DATETIME NOT NULL,
-        status TEXT DEFAULT 'Pending'
+        status TEXT DEFAULT 'Pending',
+        finish_time DATETIME 
     );
     """)
 
@@ -140,25 +141,37 @@ def GET_available_food():
 def GET_available_drink():
     return fetch_query_single_output(""" SELECT name FROM menu where type = 'Beverage' and availability = 1""")  
 
-def GET_orders_df():
-    df_init = fetch_query("SELECT * FROM orders")  
+def GET_orders_df(status = ""):
+    if status == "":
+        df_init = fetch_query("SELECT * FROM orders")  
+    else:
+        df_init = fetch_query(f"SELECT * FROM orders where status = '{status}'")  
 
     df = pd.DataFrame(df_init)
 
-    df.columns = ['id','Table','Item','Quantity','order_time','Status']
+    if df.empty == False:
 
-    df['Minutes since request'] = df['order_time'].apply(utils_time_diff)
+        df.columns = ['id','Table','Item','Quantity','order_time','Status','Finish Time']
 
-    df = df.drop("id",axis=1)
+        df['Minutes since request'] = df['order_time'].apply(utils_time_diff)
 
-    df['dense_rank'] = df['order_time'].rank(method='dense', ascending=True)
+        #df = df.drop("id",axis=1)
+
+        df['dense_rank'] = df['order_time'].rank(method='dense', ascending=True)
     #df = df.drop("order_time",axis=1)
 
     #df.columns = ['id','Table','Item','Quantity','Order time','Status']
 
-    return df
+        return df
+    
 
+def POST_finish_order(id):
 
+    execute_query(f"update orders set status = 'Completed' where id = {id}")
+
+    date_now_str = dt.datetime.now()
+
+    execute_query(f"update orders set finish_time = '{date_now_str}' where id = {id}")
 
 
 
@@ -193,8 +206,6 @@ def ADD_order_df_to_db(df,table_number):
 
 if __name__ == "__main__":
     create_database()
- 
-#print(fetch_query("select * from orders"))
 
 
 
