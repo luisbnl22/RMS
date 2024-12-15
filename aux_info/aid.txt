@@ -1,0 +1,9 @@
+   CREATE TABLE IF NOT EXISTS orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        table_id INTEGER NOT NULL,
+        item TEXT NOT NULL,
+        quantity INT NOT NULL,
+        order_time DATETIME NOT NULL,
+        status TEXT DEFAULT 'Pending',
+        finish_time DATETIME 
+    );

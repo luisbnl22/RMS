@@ -141,6 +141,29 @@ def GET_available_food():
 def GET_available_drink():
     return fetch_query_single_output(""" SELECT name FROM menu where type = 'Beverage' and availability = 1""")  
 
+
+def GET_week_sales():
+
+    df_init = fetch_query("SELECT item, count(*) FROM orders group by item order by count(*) desc")  
+
+    df = pd.DataFrame(df_init)
+
+    df.columns = ['Item','Count']
+
+    return df
+
+def GET_week_hour_day_sales():
+
+    df_init = fetch_query("""SELECT item, order_time 
+                            FROM orders
+                          """)  
+
+    df = pd.DataFrame(df_init)
+
+    df.columns = ['Item','Datetime']
+
+    return df
+
 def GET_orders_df(status = ""):
     if status == "":
         df_init = fetch_query("SELECT * FROM orders")  
@@ -204,11 +227,12 @@ def ADD_order_df_to_db(df,table_number):
 
 
 
-if __name__ == "__main__":
-    create_database()
+# if __name__ == "__main__":
+#     create_database()
 
 
 
 # idd = 5
 # execute_query(f"update tables set is_occupied = 1 where id = {idd}")
 
+print(fetch_query("select * FRom orders"))

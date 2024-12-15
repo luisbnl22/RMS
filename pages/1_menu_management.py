@@ -7,6 +7,17 @@ import pdb
 import time
 
 
+# Check login state
+if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
+    # Stop unauthorized access and hide the page content
+    st.warning("You must log in to access this page.")
+    st.stop()
+
+# If authenticated, page content starts here
+st.sidebar.success(f"Logged in as: {st.session_state['role']}")
+st.title("Page 1")
+st.write("This content is only visible to authenticated users.")
+
 # Initialize session state to track if the popup should appear
 if "show_popup" not in st.session_state:
     st.session_state["show_popup"] = False
