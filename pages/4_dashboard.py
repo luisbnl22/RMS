@@ -4,7 +4,27 @@ import plotly.express as px
 from database import db_setup
 import plotly
 
+import utils as utils
 
+utils.check_authentication()
+
+# If authenticated, page content starts here
+st.sidebar.success(f"Logged in as: {st.session_state['role']}")
+st.title("Page 1")
+st.write("This content is only visible to authenticated users.")
+
+# # Initialize session state to track if the popup should appear
+# if "show_popup" not in st.session_state:
+#     st.session_state["show_popup"] = False
+
+# # Function to toggle the popup
+# def toggle_popup():
+#     st.session_state["show_popup"] = not st.session_state["show_popup"]
+
+utils.initialize_popup_state()
+# "Add Option" button
+if st.button("Add new Menu Option"):
+    utils.toggle_popup()  # Show the popup
 
 
 

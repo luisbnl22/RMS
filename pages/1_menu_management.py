@@ -5,7 +5,7 @@ from classes_script import MenuItem
 import logging
 import pdb
 import time
-from RMS.pages import utils
+import utils as utils
 
 
 # # Check login state
@@ -32,7 +32,7 @@ st.write("This content is only visible to authenticated users.")
 utils.initialize_popup_state()
 # "Add Option" button
 if st.button("Add new Menu Option"):
-    toggle_popup()  # Show the popup
+    utils.toggle_popup()  # Show the popup
 
 st.markdown("---")
 
