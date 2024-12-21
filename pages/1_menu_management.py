@@ -5,28 +5,31 @@ from classes_script import MenuItem
 import logging
 import pdb
 import time
+from RMS.pages import utils
 
 
-# Check login state
-if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
-    # Stop unauthorized access and hide the page content
-    st.warning("You must log in to access this page.")
-    st.stop()
+# # Check login state
+# if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
+#     # Stop unauthorized access and hide the page content
+#     st.warning("You must log in to access this page.")
+#     st.stop()
+
+utils.check_authentication()
 
 # If authenticated, page content starts here
 st.sidebar.success(f"Logged in as: {st.session_state['role']}")
 st.title("Page 1")
 st.write("This content is only visible to authenticated users.")
 
-# Initialize session state to track if the popup should appear
-if "show_popup" not in st.session_state:
-    st.session_state["show_popup"] = False
+# # Initialize session state to track if the popup should appear
+# if "show_popup" not in st.session_state:
+#     st.session_state["show_popup"] = False
 
-# Function to toggle the popup
-def toggle_popup():
-    st.session_state["show_popup"] = not st.session_state["show_popup"]
+# # Function to toggle the popup
+# def toggle_popup():
+#     st.session_state["show_popup"] = not st.session_state["show_popup"]
 
-
+utils.initialize_popup_state()
 # "Add Option" button
 if st.button("Add new Menu Option"):
     toggle_popup()  # Show the popup
