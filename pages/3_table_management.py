@@ -3,34 +3,25 @@ from database import db_setup
 from streamlit_js_eval import streamlit_js_eval
 import utils as utils
 
-utils.check_authentication()
+ui =    utils.AccessManagement()
+TableManagement = db_setup.TableManagement()
+db = db_setup.Database()
+DataInteraction = db_setup.DataInteraction()
 
-# If authenticated, page content starts here
-st.sidebar.success(f"Logged in as: {st.session_state['role']}")
-st.title("Page 1")
-st.write("This content is only visible to authenticated users.")
 
-# # Initialize session state to track if the popup should appear
-# if "show_popup" not in st.session_state:
-#     st.session_state["show_popup"] = False
-
-# # Function to toggle the popup
-# def toggle_popup():
-#     st.session_state["show_popup"] = not st.session_state["show_popup"]
-
-utils.initialize_popup_state()
-# "Add Option" button
-if st.button("Add new Menu Option"):
-    utils.toggle_popup()  # Show the popup
+# ui.check_authentication()
+# ui.display_sidebar()
+# ui.display_page_header()
+# ui.initialize_popup_state()
 
 
 st.title("Table Management")
 
-df = db_setup.GET_orders_df('Pending')
+df = DataInteraction.GET_orders_df('Pending')
 #st.dataframe(df,width=1200,hide_index=1)
 
 
-if df is None:
+if df.empty:
     st.write("No pending orders")
 else:
     ranks = list(df['dense_rank'].unique().tolist())
@@ -69,9 +60,10 @@ else:
                 with col2:
                     if st.button("Click Me",key=f"{df_iter['id'].iloc[0]}-{df_iter['order_time'].iloc[0]}-{index}"):
                         #st.write(f"{df_iter['id'].iloc[index]}")
-                        db_setup.POST_finish_order(df_iter['id'].iloc[index])
+
+                        TableManagement.POST_finish_order(int(df_iter['id'].iloc[index]))
                         
-                        streamlit_js_eval(js_expressions="parent.window.location.reload()")
+                        #streamlit_js_eval(js_expressions="parent.window.location.reload()")
                         
 
             #st.write(df_iter["Table"])

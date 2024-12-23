@@ -4,7 +4,18 @@ import pathlib
 import pandas as pd
 import datetime as dt
 
+def utils_time_diff(request_date):
+    """
+    Receives date in string format and returns minutes passed since that date in minutes int
+    """
+    now = dt.datetime.now()
 
+    date_object = dt.datetime.strptime(request_date, "%Y-%m-%d %H:%M:%S.%f")
+
+    diff_sec = (now-date_object).seconds
+    diff_minutes = int(diff_sec/60)
+
+    return diff_minutes
 
 class Database:
     def __init__(self):
@@ -86,6 +97,10 @@ class Database:
         );
         """)
 
+        orders = pd.read_excel(cwd_file,sheet_name = 'orders')
+
+        orders.to_sql("orders", self.connect(), if_exists="append", index=False)
+
         print(f"Empty database created at {db_path}")        
 
 class MenuManagement:
@@ -97,6 +112,17 @@ class MenuManagement:
         params =  (product_obj.name,product_obj.item_type,product_obj.price,product_obj.availability)
 
         self.db.execute_query("insert into menu(name,type,price,availability) values (?,?,?,?,?))",params)
+
+    def GET_list_options(self,type: str = ''):
+
+        raw_data = self.db.fetch_query("SELECT name, availability FROM menu where type = ?",params=(type,))
+
+        menu = []
+        for iter in raw_data:
+            menu.append([iter[0],iter[1]])
+            #NOME E DISPONIBILIDADE
+
+        return menu
 
 class OrderManagement:
     def __init__(self):
@@ -127,39 +153,134 @@ class OrderManagement:
 
         self.db.execute_query(f"update tables set is_occupied = 1 where id = {table_number}")
 
-
 class DataInteraction:  
     def __init__(self):
         self.db = Database()
 
     def GET_available_tables(self):
-        self.db.fetch_query("""SELECT id || ' - ' || capacity || ' capacity'
+        return self.db.fetch_query("""SELECT id || ' - ' || capacity || ' capacity'
                             FROM tables
                             WHERE is_occupied = 0;
                         """,single_output = True)
 
     def GET_available_food(self):
-        self.db.fetch_query(""" 
+        return self.db.fetch_query(""" 
                 SELECT name FROM menu 
                 where type = 'Food' and availability = 1
                 """,
                 single_output = True
                 )  
+        
 
     def GET_available_drink(self):
-        self.db.fetch_query("""
+        return self.db.fetch_query("""
             SELECT name FROM menu where type = 'Beverage' 
             and availability = 1""",single_output = True)  
 
     def GET_week_sales(self):
 
-        df_init = self.db.fetch_query("SELECT item, count(*) FROM orders group by item order by count(*) desc")  
+        df_init = self.db.fetch_query("""
+                                      SELECT date(order_time) as date, item, count(*) 
+                                      FROM orders t1
+                                      inner join menu t2
+                                      on t1.item = t2.name
+                                      where t2.type = 'Food'
+                                      group by date(order_time)
+                                      , item 
+                                      order by count(*) desc
+                                      """)  
 
         df = pd.DataFrame(df_init)
 
-        df.columns = ['Item','Count']
+        df.columns = ['Order Time','Item','Count']
 
         return df
+
+    def GET_week_meals_share(self):
+
+        df_init = self.db.fetch_query("""
+            WITH daily_totals AS (
+                SELECT date(order_time) AS date, count(*) AS total_orders
+                FROM orders t1
+                INNER JOIN menu t2 ON t1.item = t2.name
+                WHERE t2.type = 'Food'
+                GROUP BY date(order_time)
+            )
+            SELECT 
+                date(t1.order_time) AS Order_Time,
+                t1.item as Item,
+                count(*) AS item_count,
+                (count(*) * 100.0 / dt.total_orders) AS share_per_day
+            FROM orders t1
+            INNER JOIN menu t2 ON t1.item = t2.name
+            INNER JOIN daily_totals dt ON date(t1.order_time) = dt.date
+            WHERE t2.type = 'Food'
+            GROUP BY date(t1.order_time), t1.item, dt.total_orders
+        """)
+
+
+        df = pd.DataFrame(df_init)
+
+        df.columns = ['Order Time','Item','Count','Share']
+
+        return df
+
+    def GET_hourly_sales(self, date_filter):
+
+        #date_filter_str = str(date_filter)
+
+        df_init = self.db.fetch_query(f"""
+                                      SELECT strftime('%H', order_time) AS hour, count(*) 
+                                      FROM orders t1
+                                      inner join menu t2
+                                      on t1.item = t2.name
+                                      where t2.type = 'Food' and date(order_time) = "{date_filter}"
+                                      group by strftime('%H', order_time)
+                                      order by strftime('%H', order_time)
+                                      """)  
+
+        df = pd.DataFrame(df_init)
+
+        df.columns = ['Hour','Count']
+
+        return df
+
+    def GET_earnins_meals(self):
+
+        df_init = self.db.fetch_query("""
+                                      SELECT date(order_time) as date, item, (sum(price)-sum(cost)) as Gross_Margin
+                                      FROM orders t1
+                                      inner join menu t2
+                                      on t1.item = t2.name
+                                      where t2.type = 'Food'
+                                      group by date(order_time)
+                                      , item 
+                                      """)  
+
+        df = pd.DataFrame(df_init)
+
+        df.columns = ['Date','Item','Gross Margin']
+
+        return df
+
+    def GET_earnins_day(self,date_filter):
+
+        df_init = self.db.fetch_query(f"""
+                                      SELECT item, (sum(price)-sum(cost)) as Gross_Margin
+                                      FROM orders t1
+                                      inner join menu t2
+                                      on t1.item = t2.name
+                                      where t2.type = 'Food' and date(order_time) = "{date_filter}"
+                                      group by item
+                                      , item 
+                                      """)  
+
+        df = pd.DataFrame(df_init)
+
+        df.columns = ['Item','Gross Margin']
+
+        return df
+
 
     def GET_week_hour_day_sales(self):
 
@@ -188,7 +309,7 @@ class DataInteraction:
             df['Minutes since request'] = df['order_time'].apply(utils_time_diff)
 
             #df = df.drop("id",axis=1)
-
+            
             df['dense_rank'] = df['order_time'].rank(method='dense', ascending=True)
 
         return df
@@ -199,14 +320,12 @@ class TableManagement:
 
     def POST_finish_order(self, id):
 
-        params = (id)
-        self.db.execute_query("update orders set status = 'Completed' where id = ?",params=params)
+        #params = (id,)
+        self.db.execute_query(f"update orders set status = 'Completed' where id = {id}")
 
         date_now_str = dt.datetime.now()
 
         self.db.execute_query(f"update orders set finish_time = '{date_now_str}' where id = {id}")
-
-
 
 
 

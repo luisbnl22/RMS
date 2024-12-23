@@ -33,7 +33,7 @@ if not st.session_state["authenticated"]:
             st.session_state["authenticated"] = True
             st.session_state["role"] = role
             st.success(f"Welcome, {username}! Redirecting...")
-            st.experimental_rerun()
+            #st.experimental_rerun()
         else:
             st.error("Invalid username or password. Please try again.")
 else:
