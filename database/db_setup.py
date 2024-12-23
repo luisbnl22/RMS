@@ -1,238 +1,214 @@
 import sqlite3
 import os
-#from database import db_setup
-
+import pathlib
 import pandas as pd
 import datetime as dt
 
-def utils_time_diff(request_date):
-    now = dt.datetime.now()
-
-    date_object = dt.datetime.strptime(request_date, "%Y-%m-%d %H:%M:%S.%f")
-
-    diff_sec = (now-date_object).seconds
-    diff_minutes = int(diff_sec/60)
-
-    return diff_minutes
 
 
+class Database:
+    def __init__(self):
+        SCRIPT_DIR = pathlib.Path(__file__).parent.parent
+        
+        self.db_path = SCRIPT_DIR / "data" / "restaurant.db"
 
-def create_database():
-    # Get the parent directory of the current script
-    # Get the relative parent directory (one level up)
-    parent_dir = os.path.join(os.getcwd())
+        self.file_path = SCRIPT_DIR / "database" / "initial_files" / "data.xlsx"
 
-    # Path for the database in the parent folder
-    db_path = os.path.join(parent_dir, "data", "restaurant.db")
+    def connect(self):
+        return sqlite3.connect(self.db_path)
 
-    # Ensure the "data/" directory exists in the parent folder
-    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    def execute_query(self, query, params=()):
+        with self.connect() as connection:
+            cursor = connection.cursor()
+            cursor.execute(query, params)
+            connection.commit()
 
-    # Remove existing database file (optional, ensures a clean start)
-    if os.path.exists(db_path):
-        os.remove(db_path)
-        print(f"Removed existing database at {db_path}")
+    def fetch_query(self, query, params=(), single_output = False):
+        with self.connect() as connection:
+            if single_output == False:
+                cursor = connection.cursor()
+                cursor.execute(query, params)
+                return cursor.fetchall()
+            elif single_output == True:
+                results = self.fetch_query(query, params)
+                return [row[0] for row in results]
+
+    def recreate_db(self):
+        db_path = self.db_path
+
+        # Remove existing database file (optional, ensures a clean start)
+        if os.path.exists(db_path):
+            os.remove(db_path)
+            print(f"Removed existing database at {db_path}")
+
+        self.execute_query("""
+        CREATE TABLE IF NOT EXISTS menu(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            type TEXT NOT NULL,
+            price REAL NOT NULL,
+            availability INTEGER DEFAULT 1,
+            cost REAL NOT NULL
+        );
+        """)
+
+        cwd_file = self.file_path
+
+        menu = pd.read_excel(cwd_file,sheet_name = 'menu')
+
+        menu.to_sql("menu", self.connect(), if_exists="append", index=False)
+
+        #TABLES TABLE
+
+        self.execute_query("""
+        CREATE TABLE IF NOT EXISTS tables (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            capacity INTEGER NOT NULL,
+            is_occupied INTEGER DEFAULT 0
+        );
+        """)
 
 
-    # Create a new empty database and define schema
-    connection = sqlite3.connect(db_path)
-    cursor = connection.cursor()
+        tables = pd.read_excel(cwd_file,sheet_name = 'tables')
 
-    # Create empty tables
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS menu(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        type TEXT NOT NULL,
-        price REAL NOT NULL,
-        availability INTEGER DEFAULT 1
-    );
-    """)
+        tables.to_sql("tables", self.connect(), if_exists="append", index=False)
 
-    cwd = os.getcwd()
-    cwd = cwd + '\\database\\initial_files\\data.xlsx'
-    cwd = cwd.replace("\\","/")
+        #ORDERS TABLE
+        self.execute_query("""
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            table_id INTEGER NOT NULL,
+            item TEXT NOT NULL,
+            quantity INT NOT NULL,
+            order_time DATETIME NOT NULL,
+            status TEXT DEFAULT 'Pending',
+            finish_time DATETIME 
+        );
+        """)
 
-    menu = pd.read_excel(cwd,sheet_name = 'menu')
+        print(f"Empty database created at {db_path}")        
 
-    menu.to_sql("menu", connection, if_exists="append", index=False)
-
-    #TABLES TABLE
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS tables (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        capacity INTEGER NOT NULL,
-        is_occupied INTEGER DEFAULT 0
-    );
-    """)
-
-
-    data = pd.read_excel(cwd,sheet_name = 'tables')
-
-    data.to_sql("tables", connection, if_exists="append", index=False)
-
-
-    #ORDERS TABLE
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS orders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        table_id INTEGER NOT NULL,
-        item TEXT NOT NULL,
-        quantity INT NOT NULL,
-        order_time DATETIME NOT NULL,
-        status TEXT DEFAULT 'Pending',
-        finish_time DATETIME 
-    );
-    """)
-
-    # Commit and close connection
-    connection.commit()
-    connection.close()
-
-    print(f"Empty database created at {db_path}")
-
-def execute_query(query, params=()):
-    connection = sqlite3.connect("data/restaurant.db")
-    cursor = connection.cursor()
-    cursor.execute(query, params)
-    connection.commit()
-    connection.close()
-
-def fetch_query(query, params=()):
-    connection = sqlite3.connect("data/restaurant.db")
-    cursor = connection.cursor()
-    cursor.execute(query, params)
-    rows = cursor.fetchall()
-
-    #rows = [row[0] for row in cursor.fetchall()]
-    connection.close()
-    return rows
-
-def fetch_query_single_output(query, params=()):
-    connection = sqlite3.connect("data/restaurant.db")
-    cursor = connection.cursor()
-    cursor.execute(query, params)
-    #rows = cursor.fetchall()
-
-    rows = [row[0] for row in cursor.fetchall()]
-    connection.close()
-    return rows
-
-def insert_menu_product(product_obj):
-    connection = sqlite3.connect("data/restaurant.db")
-    cursor = connection.cursor()
-
-    query = f"insert into menu(name,type,price,availability) values ('{product_obj.name}','{product_obj.item_type}','{product_obj.price}','{product_obj.availability}')"
-
-    cursor.execute(query)
-    connection.commit()
-    connection.close()
-
-def GET_available_tables():
-    return fetch_query_single_output("""SELECT id || ' - ' || capacity || ' capacity'
-                        FROM tables
-                        WHERE is_occupied = 0;
-                       """)
-
+class MenuManagement:
+    def __init__(self):
+        self.db = Database()
     
-def GET_available_food():
-    return fetch_query_single_output(""" SELECT name FROM menu where type = 'Food' and availability = 1""")  
+    def insert_menu_product(self,product_obj):
 
-def GET_available_drink():
-    return fetch_query_single_output(""" SELECT name FROM menu where type = 'Beverage' and availability = 1""")  
+        params =  (product_obj.name,product_obj.item_type,product_obj.price,product_obj.availability)
+
+        self.db.execute_query("insert into menu(name,type,price,availability) values (?,?,?,?,?))",params)
+
+class OrderManagement:
+    def __init__(self):
+        self.db = Database()
+
+    @staticmethod
+    def GENERATE_order_df():
+        return pd.DataFrame(columns=['item','quantity'])
+
+    @staticmethod
+    def ADD_order_df(original_df,new_item,new_quantity):
+    
+        new_df = pd.DataFrame({'item':[new_item],'quantity':[new_quantity]})
+
+        original_df = pd.concat([original_df,new_df])
+
+        return original_df
+    
+    def ADD_order_df_to_db(self,df,table_number):
+        
+        df['table_id'] = table_number
+        df['order_time'] = dt.datetime.now()
 
 
-def GET_week_sales():
+        df.to_sql("orders", self.db.connect(), if_exists="append", index=False)
 
-    df_init = fetch_query("SELECT item, count(*) FROM orders group by item order by count(*) desc")  
+        table_number = table_number.split("-")[0]
 
-    df = pd.DataFrame(df_init)
+        self.db.execute_query(f"update tables set is_occupied = 1 where id = {table_number}")
 
-    df.columns = ['Item','Count']
 
-    return df
+class DataInteraction:  
+    def __init__(self):
+        self.db = Database()
 
-def GET_week_hour_day_sales():
+    def GET_available_tables(self):
+        self.db.fetch_query("""SELECT id || ' - ' || capacity || ' capacity'
+                            FROM tables
+                            WHERE is_occupied = 0;
+                        """,single_output = True)
 
-    df_init = fetch_query("""SELECT item, order_time 
-                            FROM orders
-                          """)  
+    def GET_available_food(self):
+        self.db.fetch_query(""" 
+                SELECT name FROM menu 
+                where type = 'Food' and availability = 1
+                """,
+                single_output = True
+                )  
 
-    df = pd.DataFrame(df_init)
+    def GET_available_drink(self):
+        self.db.fetch_query("""
+            SELECT name FROM menu where type = 'Beverage' 
+            and availability = 1""",single_output = True)  
 
-    df.columns = ['Item','Datetime']
+    def GET_week_sales(self):
 
-    return df
+        df_init = self.db.fetch_query("SELECT item, count(*) FROM orders group by item order by count(*) desc")  
 
-def GET_orders_df(status = ""):
-    if status == "":
-        df_init = fetch_query("SELECT * FROM orders")  
-    else:
-        df_init = fetch_query(f"SELECT * FROM orders where status = '{status}'")  
+        df = pd.DataFrame(df_init)
 
-    df = pd.DataFrame(df_init)
+        df.columns = ['Item','Count']
 
-    if df.empty == False:
+        return df
 
-        df.columns = ['id','Table','Item','Quantity','order_time','Status','Finish Time']
+    def GET_week_hour_day_sales(self):
 
-        df['Minutes since request'] = df['order_time'].apply(utils_time_diff)
+        df_init = self.db.fetch_query("""SELECT item, order_time 
+                                FROM orders
+                            """)  
 
-        #df = df.drop("id",axis=1)
+        df = pd.DataFrame(df_init)
 
-        df['dense_rank'] = df['order_time'].rank(method='dense', ascending=True)
-    #df = df.drop("order_time",axis=1)
+        df.columns = ['Item','Datetime']
 
-    #df.columns = ['id','Table','Item','Quantity','Order time','Status']
+        return df
+
+    def GET_orders_df(self, status = ""):
+        if status == "":
+            df_init = self.db.fetch_query("SELECT * FROM orders")  
+        else:
+            df_init = self.db.fetch_query(f"SELECT * FROM orders where status = '{status}'")  
+
+        df = pd.DataFrame(df_init)
+
+        if df.empty == False:
+
+            df.columns = ['id','Table','Item','Quantity','order_time','Status','Finish Time']
+
+            df['Minutes since request'] = df['order_time'].apply(utils_time_diff)
+
+            #df = df.drop("id",axis=1)
+
+            df['dense_rank'] = df['order_time'].rank(method='dense', ascending=True)
 
         return df
     
+class TableManagement:  
+    def __init__(self):
+        self.db = Database()
 
-def POST_finish_order(id):
+    def POST_finish_order(self, id):
 
-    execute_query(f"update orders set status = 'Completed' where id = {id}")
+        params = (id)
+        self.db.execute_query("update orders set status = 'Completed' where id = ?",params=params)
 
-    date_now_str = dt.datetime.now()
+        date_now_str = dt.datetime.now()
 
-    execute_query(f"update orders set finish_time = '{date_now_str}' where id = {id}")
-
-
-
-def GENERATE_order_df():
-    return pd.DataFrame(columns=['item','quantity'])
-
-def ADD_order_df(original_df,new_item,new_quantity):
-    
-    new_df = pd.DataFrame({'item':[new_item],'quantity':[new_quantity]})
-
-    original_df = pd.concat([original_df,new_df])
-
-    return original_df
-
-def ADD_order_df_to_db(df,table_number):
-    
-    connection = sqlite3.connect("data/restaurant.db")
-    #cursor = connection.cursor()
-    df['table_id'] = table_number
-    df['order_time'] = dt.datetime.now()
-
-
-    df.to_sql("orders", connection, if_exists="append", index=False)
-    #connection.commit()
-    #connection.close()
-
-    table_number = table_number.split("-")[0]
-
-    execute_query(f"update tables set is_occupied = 1 where id = {table_number}")
+        self.db.execute_query(f"update orders set finish_time = '{date_now_str}' where id = {id}")
 
 
 
-# if __name__ == "__main__":
-#     create_database()
 
 
 
-# idd = 5
-# execute_query(f"update tables set is_occupied = 1 where id = {idd}")
 
-print(fetch_query("select * FRom orders"))
