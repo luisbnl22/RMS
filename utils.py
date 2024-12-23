@@ -40,8 +40,8 @@ class AccessManagement:
 
     def display_page_header(self):
         """Display the title and header for the page content."""
-        st.title("Page 1")
-        st.write("This content is only visible to authenticated users.")
+        # st.title("Page 1")
+        # st.write("This content is only visible to authenticated users.")
 
     def initialize_popup_state(self):
         """Initialize session state to track if the popup should appear."""
